@@ -1,4 +1,5 @@
-
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
@@ -22,9 +23,12 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  ssl: process.env.DB_SSL === "true"
-    ? { rejectUnauthorized: true }
-    : undefined
+ ssl: process.env.DB_SSL === "true"
+  ? {
+      ca: fs.readFileSync(path.join(__dirname, "ca.pem"), "utf8"),
+      rejectUnauthorized: true
+    }
+  : undefined
 });
 
 // Create the scans table automatically
