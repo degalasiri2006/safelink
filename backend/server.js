@@ -298,6 +298,8 @@ app.post("/api/auth/login", async (req, res) => {
       password,
       user.password_hash
     );
+    console.log("Login email:", user.email);
+console.log("Password match:", passwordMatches);
 
     if (!passwordMatches) {
       return res.status(401).json({ message: "Invalid email or password." });
