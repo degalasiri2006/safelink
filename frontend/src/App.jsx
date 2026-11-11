@@ -4,7 +4,8 @@ import {
   ShieldCheck, LayoutDashboard, ScanSearch, History,
   BarChart3, Layers, QrCode, GitCompare, FileText,
   Lightbulb, Globe, Trash2, Download, Menu, X,
-  AlertTriangle, CheckCircle, Search, RefreshCw
+  AlertTriangle, CheckCircle, Search, RefreshCw,
+  Eye, EyeOff, LogOut
 } from "lucide-react";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
@@ -57,7 +58,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const [user, setUser] = useState(null);
+ const [token, setToken] = useState(() => localStorage.getItem("token"));
+const [authMode, setAuthMode] = useState("login");
+const [authName, setAuthName] = useState("");
+const [authEmail, setAuthEmail] = useState("");
+const [authPassword, setAuthPassword] = useState("");
+const [showPassword, setShowPassword] = useState(false);
   const navigation = [
     ["Dashboard", <LayoutDashboard />],
     ["URL Scanner", <ScanSearch />],
@@ -71,37 +78,131 @@ function App() {
     ["Security Tips", <Lightbulb />]
   ];
 
-  async function request(path, options = {}) {
+  async function request(path, options = {}, authToken = token) {
     const response = await fetch(`${API}${path}`, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
+     headers: {
+  "Content-Type": "application/json",
+ ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+  ...(options.headers || {})
+}
     });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Request failed");
-    return data;
-  }
+   
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || "Request failed");
+return data;
+}
 
-  async function loadData() {
-    try {
-      const [rows, summary] = await Promise.all([
-        request("/api/history"),
-        request("/api/stats")
-      ]);
+
+
+    
+async function handleAuth() {
+  try {
+    setError("");
+
+    const path = authMode === "register"
+      ? "/api/auth/register"
+      : "/api/auth/login";
+
+    const body = authMode === "register"
+      ? { name: authName, email: authEmail, password: authPassword }
+      : { email: authEmail, password: authPassword };
+
+    const data = await request(path, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+
+    if (authMode === "register") {
+      setAuthName("");
+      setAuthEmail("");
+      setAuthPassword("");
+      setAuthMode("login");
+      setError("Account created successfully. Please log in.");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+
+    setHistory([]);
+    setStats({
+      total: 0,
+      lowCount: 0,
+      mediumCount: 0,
+      highCount: 0,
+      averageScore: 0
+    });
+
+    setToken(data.token);
+    setUser(data.user);
+    setAuthPassword("");
+
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
+
+  
+     async function loadData(authToken = token) {
+  try {
+    const [rows, summary] = await Promise.all([
+      request("/api/history", {}, authToken),
+      request("/api/stats", {}, authToken)
+    ]);
+
+    if (authToken === token) {
       setHistory(rows);
       setStats(summary);
+    }
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
+useEffect(() => {
+  if (!token) return;
+
+  let cancelled = false;
+
+  async function loadUserData() {
+    try {
+      const data = await request("/api/auth/me", {}, token);
+
+      if (cancelled) return;
+
+      setUser(data.user);
+
+      const [rows, summary] = await Promise.all([
+        request("/api/history", {}, token),
+        request("/api/stats", {}, token)
+      ]);
+
+      if (!cancelled) {
+        setHistory(rows);
+        setStats(summary);
+      }
     } catch (err) {
-      setError(err.message);
+      if (!cancelled) {
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
+        setAuthEmail("");
+        setAuthName("");
+        setAuthPassword("");
+        setHistory([]);
+        setStats({});
+      }
     }
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  loadUserData();
 
+  return () => {
+    cancelled = true;
+  };
+}, [token]);
   async function scanURL(value = url) {
     if (!value.trim()) {
       setError("Please enter a URL.");
@@ -320,7 +421,7 @@ function App() {
     </div>;
   }
 
-  function comparisonCard(item) {
+  
    function comparisonCard(item, index, higherRiskIndex) {
   return <div className="compare-card">
     <h3>URL {index + 1}: {item.domain}</h3>
@@ -349,7 +450,84 @@ function App() {
     )}
   </div>;
 }
-  }
+  
+ 
+  if (!token) {
+  return (
+    <div className="auth-container">
+      <form className="auth-card" onSubmit={e => {
+        e.preventDefault();
+        handleAuth();
+      }}>
+        <ShieldCheck size={40} />
+        <h1>SafeLink</h1>
+        <p>{authMode === "register" ? "Create your account" : "Login to your account"}</p>
+
+        {authMode === "register" && (
+         <input
+  type="text"
+  name="safelink-new-name"
+  placeholder="Your name"
+  value={authName}
+  onChange={e => setAuthName(e.target.value)}
+  autoComplete="off"
+  required
+/>
+        )}
+
+<input
+  type="email"
+  name="safelink-login-email"
+  placeholder="Email address"
+  value={authEmail}
+  onChange={e => setAuthEmail(e.target.value)}
+  autoComplete="off"
+  required
+/>
+        <div className="password-wrapper">
+ <input
+  type={showPassword ? "text" : "password"}
+  placeholder="Password (minimum 8 characters)"
+  value={authPassword}
+  onChange={e => setAuthPassword(e.target.value)}
+  autoComplete="new-password"
+  minLength="8"
+  required
+/>
+  <button
+    type="button"
+    className="password-toggle"
+    onClick={() => setShowPassword(!showPassword)}
+  >
+    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+  </button>
+</div>
+        {error && <div className="error-message">{error}</div>}
+
+        <button className="primary-button" type="submit">
+          {authMode === "register" ? "Create Account" : "Login"}
+        </button>
+
+        <p>
+          {authMode === "login"
+            ? "Don't have an account?"
+            : "Already have an account?"}
+          <button
+            type="button"
+            onClick={() => {
+  setAuthMode(authMode === "login" ? "register" : "login");
+  setAuthName("");
+  setAuthPassword("");
+  setError("");
+}}
+          >
+            {authMode === "login" ? "Register" : "Login"}
+          </button>
+        </p>
+      </form>
+    </div>
+  );
+}
 
   return <div className="app-shell">
     <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
@@ -370,7 +548,43 @@ function App() {
       <header className="topbar">
         <button className="mobile-menu" onClick={() => setMenuOpen(true)}><Menu /></button>
         <div><small>SECURITY WORKSPACE</small><h2>{page}</h2></div>
-        <button className="refresh-button" onClick={loadData}><RefreshCw size={17} /> Refresh</button>
+        
+      
+<div className="topbar-actions">
+  <div className="user-profile">
+    <div className="user-avatar">
+      {user?.name?.charAt(0).toUpperCase()}
+    </div>
+    <div className="user-details">
+      <span className="user-label">WELCOME BACK</span>
+      <span className="user-name">{user?.name}</span>
+    </div>
+  </div>
+
+  <button className="refresh-button" onClick={loadData}>
+    <RefreshCw size={17} /> Refresh
+  </button>
+
+  <button
+    className="logout-button"
+onClick={() => {
+  localStorage.removeItem("token");
+  setToken(null);
+  setUser(null);
+  setAuthEmail("");
+   setAuthName("");
+  setAuthPassword("");
+  setHistory([]);
+  setStats({});
+  setResult(null);
+  setBulkResults([]);
+  setPage("Dashboard");
+}}
+  >
+    <LogOut size={17} /> Logout
+  </button>
+</div>
+
       </header>
 
       {error && <div className="error-message">{error}<button onClick={() => setError("")}>×</button></div>}

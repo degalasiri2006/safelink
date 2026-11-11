@@ -3,6 +3,8 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -32,6 +34,7 @@ const pool = mysql.createPool({
 });
 
 // Create the scans table automatically
+
 async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS scans (
@@ -43,6 +46,26 @@ async function initializeDatabase() {
       scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+     
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  const [columns] = await pool.query(
+    "SHOW COLUMNS FROM scans LIKE 'user_id'"
+  );
+
+  if (columns.length === 0) {
+    await pool.query(
+      "ALTER TABLE scans ADD COLUMN user_id INT NULL"
+    );
+  }
 }
 
 // URL analysis engine
@@ -168,21 +191,152 @@ function analyzeURL(input) {
   };
 }
 
-async function saveScan(result) {
+
+
+async function saveScan(result, userId) {
   const [insert] = await pool.execute(
     `INSERT INTO scans
-     (url, risk_score, risk_level, detected_issues)
-     VALUES (?, ?, ?, ?)`,
+     (url, risk_score, risk_level, detected_issues, user_id)
+     VALUES (?, ?, ?, ?, ?)`,
     [
       result.url,
       result.riskScore,
       result.riskLevel,
-      JSON.stringify(result.issues)
+      JSON.stringify(result.issues),
+      userId
     ]
   );
 
   return { id: insert.insertId, ...result };
 }
+
+// Verify login token
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Please log in." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid or expired login." });
+  }
+}
+
+// Register a new user
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "Please enter name, email and password."
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must contain at least 8 characters."
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const [result] = await pool.execute(
+      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+      [name.trim(), cleanEmail, passwordHash]
+    );
+
+    const token = jwt.sign(
+      { userId: result.insertId },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.status(201).json({
+      message: "Account created successfully.",
+      token,
+      user: { id: result.insertId, name: name.trim(), email: cleanEmail }
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ message: "Email already registered." });
+    }
+
+    res.status(500).json({ message: "Registration failed." });
+  }
+});
+
+// Login an existing user
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Please enter email and password."
+      });
+    }
+
+    const [rows] = await pool.execute(
+      "SELECT * FROM users WHERE email = ?",
+      [email.trim().toLowerCase()]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const user = rows[0];
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!passwordMatches) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Login successful.",
+      token,
+      user: { id: user.id, name: user.name, email: user.email }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Login failed." });
+  }
+});
+
+// Get logged-in user
+app.get("/api/auth/me", authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, name, email FROM users WHERE id = ?",
+      [req.userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.json({ user: rows[0] });
+  } catch (error) {
+    res.status(500).json({ message: "Could not get user details." });
+  }
+});
+
 
 function parseHistoryRow(row) {
   let issues = [];
@@ -215,7 +369,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // Scan and save one URL
-app.post("/api/scan", async (req, res) => {
+app.post("/api/scan", authenticateToken, async (req, res) => {
   try {
     const { url } = req.body;
 
@@ -224,7 +378,7 @@ app.post("/api/scan", async (req, res) => {
     }
 
     const result = analyzeURL(url.trim());
-    const saved = await saveScan(result);
+   const saved = await saveScan(result, req.userId);
 
     res.json(saved);
   } catch (error) {
@@ -248,7 +402,7 @@ app.post("/api/analyze", (req, res) => {
 });
 
 // Bulk scan and save up to 20 URLs
-app.post("/api/bulk-scan", async (req, res) => {
+app.post("/api/bulk-scan", authenticateToken, async (req, res) => {
   try {
     const { urls } = req.body;
 
@@ -269,7 +423,7 @@ app.post("/api/bulk-scan", async (req, res) => {
         }
 
         const result = analyzeURL(item.trim());
-        results.push(await saveScan(result));
+       results.push(await saveScan(result, req.userId));
       } catch (error) {
         results.push({
           url: String(item),
@@ -285,12 +439,12 @@ app.post("/api/bulk-scan", async (req, res) => {
 });
 
 // Scan history
-app.get("/api/history", async (req, res) => {
+app.get("/api/history", authenticateToken, async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM scans ORDER BY scanned_at DESC LIMIT 500"
-    );
-
+   const [rows] = await pool.execute(
+  "SELECT * FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT 500",
+  [req.userId]
+);
     res.json(rows.map(parseHistoryRow));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -298,18 +452,18 @@ app.get("/api/history", async (req, res) => {
 });
 
 // Dashboard analytics
-app.get("/api/stats", async (req, res) => {
+app.get("/api/stats", authenticateToken, async (req, res) => {
   try {
-    const [[summary]] = await pool.query(`
-      SELECT
-        COUNT(*) AS total,
-        SUM(risk_level = 'Low') AS lowCount,
-        SUM(risk_level = 'Medium') AS mediumCount,
-        SUM(risk_level = 'High') AS highCount,
-        ROUND(AVG(risk_score), 1) AS averageScore
-      FROM scans
-    `);
-
+   const [[summary]] = await pool.query(`
+  SELECT
+    COUNT(*) AS total,
+    SUM(risk_level = 'Low') AS lowCount,
+    SUM(risk_level = 'Medium') AS mediumCount,
+    SUM(risk_level = 'High') AS highCount,
+    ROUND(AVG(risk_score), 1) AS averageScore
+  FROM scans
+  WHERE user_id = ?
+`, [req.userId]);
     res.json({
       total: Number(summary.total || 0),
       lowCount: Number(summary.lowCount || 0),
@@ -323,15 +477,18 @@ app.get("/api/stats", async (req, res) => {
 });
 
 // Delete one history record
-app.delete("/api/history/:id", async (req, res) => {
+app.delete("/api/history/:id", authenticateToken, async (req, res) => {
   try {
-    await pool.execute("DELETE FROM scans WHERE id = ?", [req.params.id]);
+    await pool.execute(
+      "DELETE FROM scans WHERE id = ? AND user_id = ?",
+      [req.params.id, req.userId]
+    );
+
     res.json({ message: "Scan history record deleted." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 // Start server
 const PORT = process.env.PORT || 5000;
 

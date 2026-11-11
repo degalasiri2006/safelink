@@ -696,3 +696,254 @@ th {
     max-width: none;
   }
 }
+
+
+
+/* ===== SafeLink Premium Authentication Design ===== */
+
+.auth-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 25px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(36, 103, 255, 0.25), transparent 35%),
+    radial-gradient(circle at 85% 80%, rgba(139, 65, 255, 0.22), transparent 35%),
+    #080f20;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 42px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+  background: rgba(19, 30, 55, 0.92);
+  border: 1px solid rgba(111, 147, 255, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.4),
+              0 0 35px rgba(55, 105, 255, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.auth-card > svg {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto;
+  padding: 12px;
+  box-sizing: border-box;
+  color: #8caaff;
+  background: rgba(64, 105, 255, 0.15);
+  border: 1px solid rgba(112, 151, 255, 0.3);
+  border-radius: 17px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  text-align: center;
+  color: #ffffff;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.auth-card > p {
+  color: #a8b5d1;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 15px 16px;
+  box-sizing: border-box;
+  border: 1px solid #344362;
+  border-radius: 11px;
+  outline: none;
+  background: #111d35;
+  color: #ffffff;
+  font-size: 15px;
+  transition: 0.25s;
+}
+
+.auth-card input::placeholder {
+  color: #8290aa;
+}
+
+.auth-card input:focus {
+  border-color: #668cff;
+  box-shadow: 0 0 0 3px rgba(80, 125, 255, 0.16);
+}
+
+.auth-card button {
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.auth-card > button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(110deg, #3675ff, #7954f5);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 8px 22px rgba(69, 101, 255, 0.25);
+  transition: 0.25s;
+}
+
+.auth-card > button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(69, 101, 255, 0.4);
+  filter: brightness(1.12);
+}
+
+.auth-card p:last-of-type {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: #a8b5d1;
+  font-size: 14px;
+}
+
+.auth-card p button {
+  padding: 5px;
+  border: none;
+  background: transparent;
+  color: #83a5ff;
+  font-weight: 700;
+}
+
+.auth-card p button:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.auth-card .error-message {
+  padding: 11px;
+  border-radius: 9px;
+  color: #ffaaaa;
+  background: rgba(220, 38, 38, 0.13);
+  border: 1px solid rgba(255, 100, 100, 0.2);
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 30px 22px;
+  }
+
+  .auth-card h1 {
+    font-size: 30px;
+  }
+}
+
+/* Password field with eye icon */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+  box-sizing: border-box;
+}
+
+.password-wrapper .password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #8caaff;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.password-wrapper .password-toggle:hover {
+  color: #ffffff;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 13px 6px 7px;
+  background: #f1f4ff;
+  border: 1px solid #dfe6ff;
+  border-radius: 13px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #4263eb, #7954f5);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.user-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #8994aa;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #263657;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 16px;
+  border: 1px solid #ffdada;
+  border-radius: 10px;
+  background: #fff2f2;
+  color: #dc4545;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #dc4545;
+  color: white;
+}
