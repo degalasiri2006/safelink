@@ -277,7 +277,7 @@ app.post("/api/auth/register", async (req, res) => {
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
+const loginStart = Date.now();
     if (!email || !password) {
       return res.status(400).json({
         message: "Please enter email and password."
@@ -288,6 +288,7 @@ app.post("/api/auth/login", async (req, res) => {
       "SELECT * FROM users WHERE email = ?",
       [email.trim().toLowerCase()]
     );
+     console.log("Database query time:", Date.now() - loginStart, "ms");
 
     if (rows.length === 0) {
       return res.status(401).json({ message: "Invalid email or password." });
@@ -298,6 +299,7 @@ app.post("/api/auth/login", async (req, res) => {
       password,
       user.password_hash
     );
+    console.log("Password verification time:", Date.now() - loginStart, "ms");
     console.log("Login email:", user.email);
 console.log("Password match:", passwordMatches);
 
@@ -310,7 +312,7 @@ console.log("Password match:", passwordMatches);
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
-
+console.log("Total backend login time:", Date.now() - loginStart, "ms");
     res.json({
       message: "Login successful.",
       token,
