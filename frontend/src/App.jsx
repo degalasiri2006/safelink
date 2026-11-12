@@ -702,43 +702,9 @@ onClick={() => {
 
      {page === "Domain Analysis" && <section className="panel">
   <h3><Globe /> Domain Analysis</h3>
-  <p>View domains from your previously scanned URLs.</p>
-
-  {history.length > 0 ? (
-    <div className="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Domain</th>
-            <th>URL</th>
-            <th>Risk Level</th>
-            <th>Risk Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.map((item, index) => {
-            let domain = "Unknown";
-            try {
-              domain = new URL(item.url).hostname;
-            } catch {}
-
-            return (
-              <tr key={item.id || index}>
-                <td>{domain}</td>
-                <td>{item.url}</td>
-                <td>{item.risk_level || item.riskLevel}</td>
-                <td>{item.risk_score ?? item.riskScore}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <p>No scanned domains available. Scan a URL first.</p>
-  )}
+  <p>Enter a URL in the URL Scanner to view its domain, protocol, HTTPS status, hostname structure and detected indicators.</p>
+  {result ? resultCard(result) : <button className="primary-button" onClick={() => setPage("URL Scanner")}>Analyze a URL</button>}
 </section>}
-
       {page === "Reports" && <section className="panel">
         <h3><FileText /> Download Reports</h3>
         <p className="muted">Export your saved scan history for project records.</p>
