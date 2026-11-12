@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ShieldCheck, LayoutDashboard, ScanSearch, History,
   BarChart3, Layers, QrCode, GitCompare, FileText,
