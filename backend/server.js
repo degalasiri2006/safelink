@@ -294,20 +294,36 @@ const loginStart = Date.now();
       return res.status(401).json({ message: "Invalid email or password." });
     }
 
-    const user = rows[0];
-    const bcryptStart = Date.now();
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
-    console.log("Bcrypt only time:", Date.now() - bcryptStart, "ms");
-    console.log("Password verification time:", Date.now() - loginStart, "ms");
-    console.log("Login email:", user.email);
-console.log("Password match:", passwordMatches);
+   
+const user = rows[0];
 
-    if (!passwordMatches) {
-      return res.status(401).json({ message: "Invalid email or password." });
-    }
+const bcryptStart = Date.now();
+
+const passwordMatches = await bcrypt.compare(
+  password,
+  user.password_hash
+);
+
+console.log(
+  "Password verification time:",
+  Date.now() - bcryptStart,
+  "ms"
+);
+
+if (!passwordMatches) {
+  return res.status(401).json({ message: "Invalid email or password." });
+}
+
+// Reduce old password hashes from cost 12 to cost 10
+if (bcrypt.getRounds(user.password_hash) > 10) {
+  const newHash = await bcrypt.hash(password, 10);
+
+  await pool.execute(
+    "UPDATE users SET password_hash = ? WHERE id = ?",
+    [newHash, user.id]
+  );
+}
+
 
     const token = jwt.sign(
       { userId: user.id },
