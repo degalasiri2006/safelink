@@ -947,3 +947,36 @@ th {
   background: #dc4545;
   color: white;
 }
+.domain-details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-top: 24px;
+  max-width: 650px;
+}
+
+.domain-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 15px;
+}
+
+.domain-detail-row span {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.domain-detail-row strong {
+  color: #172554;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.domain-detail-row:last-child {
+  border-bottom: none;
+}
