@@ -537,7 +537,18 @@ useEffect(() => {
       <p className="nav-label">WORKSPACE</p>
       {navigation.map(([name, icon]) =>
         <button key={name} className={`nav-item ${page === name ? "active" : ""}`}
-          onClick={() => { setPage(name); setMenuOpen(false); setError(""); }}>
+         onClick={() => {
+  
+   if (page === "URL Scanner" || name === "URL Scanner") {
+  setUrl("");
+  setResult(null);
+}
+  
+  setPage(name);
+  setMenuOpen(false);
+  setError("");
+}}
+>
           {icon}<span>{name}</span>
         </button>
       )}
