@@ -702,8 +702,34 @@ onClick={() => {
 
      {page === "Domain Analysis" && <section className="panel">
   <h3><Globe /> Domain Analysis</h3>
-  <p>Enter a URL in the URL Scanner to view its domain, protocol, HTTPS status, hostname structure and detected indicators.</p>
-  {result ? resultCard(result) : <button className="primary-button" onClick={() => setPage("URL Scanner")}>Analyze a URL</button>}
+
+  {result?.url ? (() => {
+    const parsed = new URL(result.url);
+    const hostname = parsed.hostname;
+    const isIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+
+    const details = [
+      ["Domain", hostname],
+      ["Protocol", parsed.protocol.replace(":", "").toUpperCase()],
+      ["HTTPS", parsed.protocol === "https:" ? "Yes" : "No"],
+      ["URL Length", result.url.length],
+      ["IP Address", isIP ? "Yes" : "No"],
+      ["Domain Sections", hostname.split(".").length]
+    ];
+
+    return (
+      <div className="domain-details">
+        {details.map(([label, value]) => (
+          <div className="domain-detail-row" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
+      </div>
+    );
+  })() : (
+    <p>Scan a URL first to view its domain analysis.</p>
+  )}
 </section>}
       {page === "Reports" && <section className="panel">
         <h3><FileText /> Download Reports</h3>
