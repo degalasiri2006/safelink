@@ -539,9 +539,8 @@ useEffect(() => {
         <button key={name} className={`nav-item ${page === name ? "active" : ""}`}
          onClick={() => {
   
-   if (page === "URL Scanner" || name === "URL Scanner") {
+  if (name === "URL Scanner") {
   setUrl("");
-  setResult(null);
 }
   
   setPage(name);
