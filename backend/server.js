@@ -246,7 +246,7 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const [result] = await pool.execute(
       "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
