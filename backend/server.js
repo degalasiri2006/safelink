@@ -295,10 +295,12 @@ const loginStart = Date.now();
     }
 
     const user = rows[0];
+    const bcryptStart = Date.now();
     const passwordMatches = await bcrypt.compare(
       password,
       user.password_hash
     );
+    console.log("Bcrypt only time:", Date.now() - bcryptStart, "ms");
     console.log("Password verification time:", Date.now() - loginStart, "ms");
     console.log("Login email:", user.email);
 console.log("Password match:", passwordMatches);
