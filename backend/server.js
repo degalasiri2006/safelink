@@ -296,6 +296,7 @@ const loginStart = Date.now();
 
    
 const user = rows[0];
+console.log("Current bcrypt cost:", bcrypt.getRounds(user.password_hash));
 
 const bcryptStart = Date.now();
 
